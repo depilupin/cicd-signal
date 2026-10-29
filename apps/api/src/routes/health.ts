@@ -7,6 +7,28 @@ export const healthRouter = Router();
 
 const startedAt = Date.now();
 
+healthRouter.get("/", (_req: Request, res: Response) => {
+  res.status(200).json(
+    createSuccessResponse({
+      name: "Signal CI/CD Vulnerability Scanner API",
+      status: "online",
+      version: "0.1.0",
+      uptime: Math.floor((Date.now() - startedAt) / 1000),
+      endpoints: {
+        health: "/healthz",
+        ready: "/readyz",
+        plans: "/api/v1/plans",
+        auth: "/api/v1/auth",
+        billing: "/api/v1/billing",
+      },
+    })
+  );
+});
+
+healthRouter.get("/health", (_req: Request, res: Response) => {
+  res.redirect("/healthz");
+});
+
 healthRouter.get("/healthz", (_req: Request, res: Response) => {
   const health: HealthCheckResponse = {
     status: "ok",
