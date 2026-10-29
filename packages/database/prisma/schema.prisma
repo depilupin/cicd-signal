@@ -1,0 +1,300 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ScanStatus {
+  QUEUED
+  FETCHING
+  ANALYZING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum Confidence {
+  CONFIRMED
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum FindingStatus {
+  OPEN
+  VALIDATING
+  VALIDATED
+  DISMISSED
+  FIXED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  UNPAID
+  TRIALING
+  INCOMPLETE
+}
+
+enum BillingProvider {
+  STRIPE
+  RAZORPAY
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  passwordHash  String?
+  googleId      String?   @unique
+  role          Role      @default(USER)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions                Session[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  gitHubInstallations     GitHubInstallation[]
+  subscriptions           Subscription[]
+  auditLogs               AuditLog[]
+
+  @@index([email])
+  @@index([googleId])
+}
+
+model Session {
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique
+  userId     String
+  expiresAt  DateTime
+  ipAddress  String?
+  userAgent  String?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+}
+
+model GitHubInstallation {
+  id             String    @id @default(uuid())
+  installationId Int       @unique
+  accountLogin   String
+  accountType    String
+  targetId       Int
+  userId         String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repositories Repository[]
+
+  @@index([installationId])
+  @@index([userId])
+}
+
+model Repository {
+  id             String   @id @default(uuid())
+  githubRepoId   Int      @unique
+  name           String
+  fullName       String
+  isPrivate      Boolean  @default(false)
+  defaultBranch  String   @default("main")
+  installationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  installation GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  scans        Scan[]
+
+  @@index([fullName])
+  @@index([installationId])
+}
+
+model ScanRule {
+  id                String     @id
+  name              String
+  category          String
+  defaultSeverity   Severity   @default(MEDIUM)
+  defaultConfidence Confidence @default(HIGH)
+  description       String
+  remediation       String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  findings Finding[]
+
+  @@index([category])
+}
+
+model Scan {
+  id             String     @id @default(uuid())
+  repositoryId   String
+  commitSha      String
+  status         ScanStatus @default(QUEUED)
+  triggeredBy    String
+  findingsCount  Int        @default(0)
+  durationMs     Int?
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  repository   Repository    @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  findings     Finding[]
+  usageRecords UsageRecord[]
+
+  @@index([repositoryId])
+  @@index([commitSha])
+  @@index([status])
+}
+
+model Finding {
+  id          String        @id @default(uuid())
+  scanId      String
+  ruleId      String
+  severity    Severity
+  confidence  Confidence
+  filePath    String
+  startLine   Int
+  endLine     Int
+  snippet     String?
+  message     String
+  remediation String?
+  status      FindingStatus @default(OPEN)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  scan Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  rule ScanRule @relation(fields: [ruleId], references: [id])
+
+  @@index([scanId])
+  @@index([ruleId])
+  @@index([severity])
+  @@index([status])
+}
+
+model Plan {
+  id               String   @id
+  name             String
+  priceCents       Int
+  currency         String   @default("USD")
+  interval         String   @default("month")
+  features         String[]
+  maxScansPerMonth Int      @default(50)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                     String             @id @default(uuid())
+  userId                 String
+  planId                 String
+  status                 SubscriptionStatus @default(ACTIVE)
+  provider               BillingProvider    @default(STRIPE)
+  providerSubscriptionId String?            @unique
+  currentPeriodStart     DateTime           @default(now())
+  currentPeriodEnd       DateTime
+  cancelAtPeriodEnd      Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan         Plan          @relation(fields: [planId], references: [id])
+  usageRecords UsageRecord[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([providerSubscriptionId])
+}
+
+model UsageRecord {
+  id             String   @id @default(uuid())
+  subscriptionId String
+  scanId         String
+  timestamp      DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  scan         Scan         @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([scanId])
+}
+
+model PaymentEvent {
+  id          String          @id @default(uuid())
+  eventId     String          @unique
+  provider    BillingProvider
+  eventType   String
+  payload     Json
+  processedAt DateTime        @default(now())
+
+  @@index([eventId])
+  @@index([provider])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  timestamp DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+}

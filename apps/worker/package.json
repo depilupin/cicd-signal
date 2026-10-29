@@ -1,0 +1,23 @@
+{
+  "name": "@signal/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -b",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "@signal/database": "*",
+    "@signal/scanner-rules": "*",
+    "@signal/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "tsx": "^4.19.3",
+    "typescript": "~6.0.2"
+  }
+}

@@ -1,0 +1,98 @@
+name: Deploy Signal
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual triggers
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # Build & Test
+  # ============================================================================
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build all packages
+        run: npm run build:packages
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+  # ============================================================================
+  # Deploy Frontend to Hostinger via FTP
+  # ============================================================================
+  deploy-frontend:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: npm run deploy:hostinger
+
+      # Copy .htaccess into the dist folder for deployment
+      - name: Include .htaccess
+        run: cp apps/web/.htaccess apps/web/dist/.htaccess
+
+      - name: Deploy to Hostinger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_HOST }}
+          username: ${{ secrets.HOSTINGER_FTP_USER }}
+          password: ${{ secrets.HOSTINGER_FTP_PASS }}
+          local-dir: ./apps/web/dist/
+          server-dir: /public_html/
+
+  # ============================================================================
+  # Render Backend — Auto-deploys via Render's GitHub integration
+  # ============================================================================
+  # No action needed here. Render automatically deploys when you push to main,
+  # as long as the repo is connected in the Render Dashboard.
+  #
+  # If you prefer manual deploy hooks, uncomment below:
+  #
+  # deploy-api:
+  #   needs: build-and-test
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - name: Trigger Render Deploy
+  #       run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
+  #
+  # deploy-worker:
+  #   needs: build-and-test
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - name: Trigger Render Deploy
+  #       run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_WORKER }}"
+

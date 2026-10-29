@@ -1,0 +1,130 @@
+# ==============================================================================
+# Render Blueprint — Signal CI/CD Vulnerability Scanner
+# ==============================================================================
+# This file defines all services, databases, and environment groups needed
+# to deploy the Signal monorepo backend on Render.
+#
+# Deploy: Connect this repo on https://dashboard.render.com → New Blueprint
+# Docs:   https://docs.render.com/blueprints
+# ==============================================================================
+
+databases:
+  - name: signal-db
+    plan: free # Upgrade to starter/standard for production
+    databaseName: signal
+    user: signal_user
+    ipAllowList: [] # Allow all (Render internal network)
+
+services:
+  # --------------------------------------------------------------------------
+  # API Service (Express backend)
+  # --------------------------------------------------------------------------
+  - type: web
+    name: signal-api
+    runtime: node
+    plan: free # Upgrade for production
+    region: oregon
+    buildCommand: npm install && npm run build:api
+    startCommand: npm run start:api
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: PORT
+        value: 10000 # Render assigns port via $PORT, but we set a default
+      - key: DATABASE_URL
+        fromDatabase:
+          name: signal-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: signal-redis
+          type: redis
+          property: connectionString
+      - key: FRONTEND_URL
+        sync: false # Set manually after Hostinger deployment
+      - key: API_BASE_URL
+        sync: false # Set to your Render service URL
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      # --- GitHub App (set manually in dashboard) ---
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_CLIENT_ID
+        sync: false
+      - key: GITHUB_APP_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_APP_WEBHOOK_SECRET
+        sync: false
+      # --- Google OAuth ---
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+      # --- Billing ---
+      - key: BILLING_PROVIDER
+        value: stripe
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      # --- Email ---
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: "Signal Security <billing@threadsecurity.in>"
+
+  # --------------------------------------------------------------------------
+  # Worker Service (Background scanner)
+  # --------------------------------------------------------------------------
+  - type: worker
+    name: signal-worker
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build:worker
+    startCommand: npm run start:worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: signal-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: signal-redis
+          type: redis
+          property: connectionString
+      - key: WORKER_CONCURRENCY
+        value: 5
+      - key: SCAN_MAX_FILES_PER_REPO
+        value: 100
+      - key: SCAN_MAX_WORKFLOW_BYTES
+        value: 500000
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+
+  # --------------------------------------------------------------------------
+  # Redis (BullMQ Job Queue)
+  # --------------------------------------------------------------------------
+  - type: redis
+    name: signal-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []

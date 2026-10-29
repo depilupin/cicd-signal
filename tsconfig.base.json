@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      ".prisma/client/default": ["./node_modules/.prisma/client/default.d.ts"],
+      ".prisma/client/*": ["./node_modules/.prisma/client/*"],
+      ".prisma/client": ["./node_modules/.prisma/client/index.d.ts"]
+    }
+  }
+}

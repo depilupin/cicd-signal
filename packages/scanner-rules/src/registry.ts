@@ -1,0 +1,123 @@
+import { DetectionCategory, Severity, Confidence } from "@signal/shared";
+import { type RuleMetadata } from "./types";
+
+export const BUILTIN_RULES: RuleMetadata[] = [
+  {
+    id: "SIG-001",
+    name: "Potential Hardcoded Secret in Workflow",
+    version: "1.0.0",
+    category: DetectionCategory.SECRET_EXPOSURE,
+    defaultSeverity: Severity.CRITICAL,
+    defaultConfidence: Confidence.HIGH,
+    description: "Detects hardcoded API keys, private tokens, passwords, and sensitive credentials within CI/CD steps.",
+    remediation: "Store sensitive values in encrypted repository or organization secrets and reference them via secrets context.",
+    cweIds: ["CWE-798"],
+  },
+  {
+    id: "SIG-002",
+    name: "Excessive Workflow or Job Permissions",
+    version: "1.0.0",
+    category: DetectionCategory.DANGEROUS_PERMISSIONS,
+    defaultSeverity: Severity.HIGH,
+    defaultConfidence: Confidence.CONFIRMED,
+    description: "Detects broad write permissions such as contents: write or id-token: write assigned globally or without explicit need.",
+    remediation: "Apply the principle of least privilege by specifying read-only default permissions and scoping write access per-job.",
+    cweIds: ["CWE-272", "CWE-250"],
+  },
+  {
+    id: "SIG-003",
+    name: "Unpinned or Mutable Third-Party Action Reference",
+    version: "1.0.0",
+    category: DetectionCategory.THIRD_PARTY_ACTIONS,
+    defaultSeverity: Severity.MEDIUM,
+    defaultConfidence: Confidence.CONFIRMED,
+    description: "Detects actions referenced by mutable branch or tag names (e.g. @v1, @main) rather than immutable full-length commit SHAs.",
+    remediation: "Pin third-party GitHub Actions to immutable full-length commit SHAs with an inline comment indicating the version tag.",
+    cweIds: ["CWE-829", "CWE-1357"],
+  },
+  {
+    id: "SIG-004",
+    name: "Self-Hosted Runner Security Exposure",
+    version: "1.0.0",
+    category: DetectionCategory.SELF_HOSTED_RUNNERS,
+    defaultSeverity: Severity.HIGH,
+    defaultConfidence: Confidence.HIGH,
+    description: "Detects self-hosted runner execution in public repositories or triggered by untrusted external contributors.",
+    remediation: "Avoid self-hosted runners on public repositories; use ephemeral isolated runners or GitHub-hosted runners.",
+    cweIds: ["CWE-269"],
+  },
+  {
+    id: "SIG-005",
+    name: "Workflow Expression Injection via Untrusted Context",
+    version: "1.0.0",
+    category: DetectionCategory.WORKFLOW_INJECTION,
+    defaultSeverity: Severity.CRITICAL,
+    defaultConfidence: Confidence.CONFIRMED,
+    description: "Detects user-controlled context variables (such as github.event.issue.title, pull_request.head.ref) embedded directly in inline run scripts.",
+    remediation: "Pass user-controlled values into the step environment block (env:) rather than interpolating directly into shell script strings.",
+    cweIds: ["CWE-78", "CWE-94"],
+  },
+  {
+    id: "SIG-006",
+    name: "Untrusted Dependency or Supply Chain Component",
+    version: "1.0.0",
+    category: DetectionCategory.SUPPLY_CHAIN_RISKS,
+    defaultSeverity: Severity.HIGH,
+    defaultConfidence: Confidence.MEDIUM,
+    description: "Detects installation of packages from untrusted external package indexes or unauthenticated script downloads.",
+    remediation: "Use lockfiles, checksum verification, and trusted private or vetted package registries.",
+    cweIds: ["CWE-829"],
+  },
+  {
+    id: "SIG-007",
+    name: "Insecure Cloud OIDC or IAM Role Assumption",
+    version: "1.0.0",
+    category: DetectionCategory.CLOUD_CREDENTIALS,
+    defaultSeverity: Severity.HIGH,
+    defaultConfidence: Confidence.HIGH,
+    description: "Detects missing or overly permissive claim conditions on OIDC cloud role assumption actions.",
+    remediation: "Enforce strict subject claim condition checks (repository, ref, environment) in cloud IAM trust policies.",
+    cweIds: ["CWE-285"],
+  },
+  {
+    id: "SIG-008",
+    name: "Arbitrary Shell Execution Path",
+    version: "1.0.0",
+    category: DetectionCategory.COMMAND_EXECUTION,
+    defaultSeverity: Severity.HIGH,
+    defaultConfidence: Confidence.MEDIUM,
+    description: "Detects dangerous shell constructs (eval, curl | bash, arbitrary script downloads) in pipeline steps.",
+    remediation: "Verify scripts before execution, pin download URLs with cryptographic digests, and avoid dynamic eval.",
+    cweIds: ["CWE-78"],
+  },
+  {
+    id: "SIG-009",
+    name: "Poisoned Pipeline Execution via pull_request_target",
+    version: "1.0.0",
+    category: DetectionCategory.ARTIFACT_BUILD_RISKS,
+    defaultSeverity: Severity.CRITICAL,
+    defaultConfidence: Confidence.HIGH,
+    description: "Detects checkout of untrusted pull request code inside workflows triggered by pull_request_target with write permissions.",
+    remediation: "Never check out untrusted pull request heads in pull_request_target workflows with access to secrets or write tokens.",
+    cweIds: ["CWE-272", "CWE-94"],
+  },
+  {
+    id: "SIG-010",
+    name: "Insecure Workflow Trigger and Branch Configuration",
+    version: "1.0.0",
+    category: DetectionCategory.SECURITY_MISCONFIGURATION,
+    defaultSeverity: Severity.MEDIUM,
+    defaultConfidence: Confidence.HIGH,
+    description: "Detects workflows running on wildcards or missing branch protection filters on production deployment triggers.",
+    remediation: "Restrict automated deployments and privileged tasks to protected branches and verified release tags.",
+    cweIds: ["CWE-16"],
+  },
+];
+
+export function getRuleById(id: string): RuleMetadata | undefined {
+  return BUILTIN_RULES.find((rule) => rule.id === id);
+}
+
+export function getRulesByCategory(category: string): RuleMetadata[] {
+  return BUILTIN_RULES.filter((rule) => rule.category === category);
+}
