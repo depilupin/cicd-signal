@@ -2,8 +2,8 @@ import { Router, type Request, type Response } from "express";
 import crypto from "node:crypto";
 import { AppError, createSuccessResponse, formatLogEntry } from "@signal/shared";
 import { prisma } from "@signal/database";
-import { asyncHandler } from "../middleware/asyncHandler";
-import { sendWelcomeEmail } from "../services/email";
+import { asyncHandler } from "../middleware/asyncHandler.js";
+import { sendWelcomeEmail } from "../services/email.js";
 
 export const authRouter = Router();
 

@@ -4,7 +4,7 @@ import { loadMonorepoEnv } from "@signal/shared";
 
 loadMonorepoEnv();
 
-import { createApp } from "./app";
+import { createApp } from "./app.js";
 
 test("API System Integration Tests", async (t) => {
   const app = createApp();

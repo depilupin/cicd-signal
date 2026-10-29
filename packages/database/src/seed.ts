@@ -1,4 +1,4 @@
-import { prisma } from "./index";
+import { prisma } from "./index.js";
 import { BUILTIN_RULES } from "@signal/scanner-rules";
 
 export async function seedDatabase() {

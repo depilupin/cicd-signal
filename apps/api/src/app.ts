@@ -2,12 +2,12 @@ import express, { type Express } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { requestIdMiddleware } from "./middleware/requestId";
-import { errorHandler } from "./middleware/errorHandler";
-import { healthRouter } from "./routes/health";
-import { plansRouter } from "./routes/plans";
-import { authRouter } from "./routes/auth";
-import { billingRouter } from "./routes/billing";
+import { requestIdMiddleware } from "./middleware/requestId.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+import { healthRouter } from "./routes/health.js";
+import { plansRouter } from "./routes/plans.js";
+import { authRouter } from "./routes/auth.js";
+import { billingRouter } from "./routes/billing.js";
 import { AppError } from "@signal/shared";
 
 export function createApp(): Express {

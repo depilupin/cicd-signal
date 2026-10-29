@@ -1,5 +1,5 @@
 import { DetectionCategory, Severity, Confidence } from "@signal/shared";
-import { type RuleMetadata } from "./types";
+import { type RuleMetadata } from "./types.js";
 
 export const BUILTIN_RULES: RuleMetadata[] = [
   {

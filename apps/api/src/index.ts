@@ -2,7 +2,7 @@ import { formatLogEntry, loadMonorepoEnv } from "@signal/shared";
 
 loadMonorepoEnv();
 
-import { createApp } from "./app";
+import { createApp } from "./app.js";
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 const HOST = process.env.HOST || "0.0.0.0";

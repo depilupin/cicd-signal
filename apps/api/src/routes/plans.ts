@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { createSuccessResponse } from "@signal/shared";
 import { prisma } from "@signal/database";
-import { asyncHandler } from "../middleware/asyncHandler";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
 export const plansRouter = Router();
 

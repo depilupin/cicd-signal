@@ -2,12 +2,12 @@ import { Router, type Request, type Response } from "express";
 import crypto from "node:crypto";
 import { AppError, createSuccessResponse, formatLogEntry } from "@signal/shared";
 import { prisma, type BillingProvider } from "@signal/database";
-import { asyncHandler } from "../middleware/asyncHandler";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 import {
   sendBillingReceiptEmail,
   sendSubscriptionCancelledEmail,
   sendSubscriptionReactivatedEmail,
-} from "../services/email";
+} from "../services/email.js";
 
 export const billingRouter = Router();
 
